@@ -77,7 +77,7 @@ public:
 	 * @param std[] Array of dimension 3 [standard deviation of x [m], standard deviation of y [m]
 	 *   standard deviation of yaw [rad]]
 	 */
-	void init(double x, double y, double theta, double std[], const Map &map_landmarks, double std_landmark[]);
+	void init(double x, double y, double theta, double std[], const Map &map_landmarks, double std_landmark[], double gaussians[]);
 
 	/**
 	 * prediction Predicts the state for the next time step

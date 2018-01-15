@@ -37,6 +37,11 @@ int main()
   double sigma_pos [3] = {0.3, 0.3, 0.01}; // GPS measurement uncertainty [x [m], y [m], theta [rad]]
   double sigma_landmark [2] = {0.3, 0.3}; // Landmark measurement uncertainty [x [m], y [m]]
 
+  double gauss_norms[3] = { 1 / (2 * M_PI * sigma_landmark[0] * sigma_landmark[1]), 2 * pow(sigma_landmark[0], 2) , 2 * pow(sigma_landmark[1], 2) };
+
+ 
+
+
   // Read map data
   Map map;
   if (!read_map_data("../data/map_data.txt", map)) {
@@ -44,10 +49,52 @@ int main()
 	  return -1;
   }
 
+  Map map_landmarks = map;
+  // Set area structure
+  std::array<std::array<area_dist, 150>, 350> area;
+  // Construct diagram 
+  // -50 < x < 300	and		-100 < y < 50	by observation of landmarks
+  for (int x = 0; x < 350; x++) {
+	  for (int y = 0; y < 150; y++) {
+		  int real_x = x - 50;
+		  int real_y = y - 100;
+		  // obtain the closest landmark
+		  double nearest_dist = 10000; //just a large number
+		  int close_id = 0;
+		  for (int j = 0; j < map_landmarks.landmark_list.size(); j++) {
+			  if (nearest_dist > dist(real_x, real_y, map_landmarks.landmark_list[j].x_f, map_landmarks.landmark_list[j].y_f)) {
+				  nearest_dist = dist(real_x, real_y, map_landmarks.landmark_list[j].x_f, map_landmarks.landmark_list[j].y_f);
+				  close_id = map_landmarks.landmark_list[j].id_i;
+			  }
+		  }
+		  area_dist A;
+		  A.x = real_x;
+		  A.y = real_y;
+		  A.no = 1;
+		  A.distance.push_back(nearest_dist);
+		  A.id.push_back(close_id);
+
+		  // Check if another landmark is in distance 2*sqrt(2)*nearest_dist
+		  double detour = 2 * sqrt(2) + nearest_dist;
+		  for (int j = 0; j < map_landmarks.landmark_list.size(); j++) {
+			  double cur_dist = dist(real_x, real_y, map_landmarks.landmark_list[j].x_f, map_landmarks.landmark_list[j].y_f);
+			  if ((cur_dist < detour) && (map_landmarks.landmark_list[j].id_i != close_id)) {
+				  A.distance.push_back(cur_dist);
+				  A.id.push_back(map_landmarks.landmark_list[j].id_i);
+				  A.no += 1;
+			  }
+		  }
+		  area[x][y] = A;
+	  }
+  }
+
+
   // Create particle filter
   ParticleFilter pf;
 
-  h.onMessage([&pf,&map,&delta_t,&sensor_range,&sigma_pos,&sigma_landmark](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
+  pf.area = area;
+
+  h.onMessage([&pf,&map,&delta_t,&sensor_range,&sigma_pos,&sigma_landmark,&gauss_norms](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
@@ -72,7 +119,7 @@ int main()
 			double sense_y = std::stod(j[1]["sense_y"].get<std::string>());
 			double sense_theta = std::stod(j[1]["sense_theta"].get<std::string>());
 
-			pf.init(sense_x, sense_y, sense_theta, sigma_pos, map, sigma_landmark);
+			pf.init(sense_x, sense_y, sense_theta, sigma_pos, map, sigma_landmark, gauss_norms);
 		  }
 		  else {
 			// Predict the vehicle's next state from previous (noiseless control) data.

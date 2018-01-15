@@ -21,7 +21,7 @@
 
 using namespace std;
 
-void ParticleFilter::init(double x, double y, double theta, double std[], const Map &map_landmarks, double std_landmark[]) {
+void ParticleFilter::init(double x, double y, double theta, double std[], const Map &map_landmarks, double std_landmark[], double gaussians[]) {
 	// TODO: Set the number of particles. Initialize all particles to first position (based on estimates of 
 	//   x, y, theta and their uncertainties from GPS) and all weights to 1. 
 	// Add random Gaussian noise to each particle.
@@ -33,9 +33,9 @@ void ParticleFilter::init(double x, double y, double theta, double std[], const 
 
 	num_particles = 100;
 
-	gauss_norm = 1 / (2 * M_PI * std_landmark[0] * std_landmark[1]);
-	gauss_norm_1 = 2 * pow(std_landmark[0], 2);
-	gauss_norm_2 = 2 * pow(std_landmark[1], 2);
+	gauss_norm = gaussians[0];
+	gauss_norm_1 = gaussians[1];
+	gauss_norm_2 = gaussians[2];
 
 	for (int i = 0; i < num_particles; i++) {
 		Particle part;
@@ -47,41 +47,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[], const 
 		particles.push_back(part);
 	}
 	is_initialized = true;
-	// Construct diagram 
-	// -50 < x < 300	and		-100 < y < 50	by observation of landmarks
-	for (int x = 0; x < 350; x++) {
-		for (int y = 0; y < 150; y++) {
-			int real_x = x - 50;
-			int real_y = y - 100;
-			// obtain the closest landmark
-			double nearest_dist = 10000; //just a large number
-			int close_id = 0;
-			for (int j = 0; j < map_landmarks.landmark_list.size(); j++) {
-				if (nearest_dist > dist(real_x, real_y, map_landmarks.landmark_list[j].x_f, map_landmarks.landmark_list[j].y_f)) {
-					nearest_dist = dist(real_x, real_y, map_landmarks.landmark_list[j].x_f, map_landmarks.landmark_list[j].y_f);
-					close_id = map_landmarks.landmark_list[j].id_i;
-				}
-			}
-			area_dist A;
-			A.x = real_x;
-			A.y = real_y;
-			A.no = 1;
-			A.distance.push_back(nearest_dist);
-			A.id.push_back(close_id);
-
-			// Check if another landmark is in distance 2*sqrt(2)*nearest_dist
-			double detour = 2 * sqrt(2) + nearest_dist;
-			for (int j = 0; j < map_landmarks.landmark_list.size(); j++) {
-				double cur_dist = dist(real_x, real_y, map_landmarks.landmark_list[j].x_f, map_landmarks.landmark_list[j].y_f);
-				if ((cur_dist < detour) && (map_landmarks.landmark_list[j].id_i != close_id)) {
-					A.distance.push_back(cur_dist);
-					A.id.push_back(map_landmarks.landmark_list[j].id_i);
-					A.no += 1;
-				}
-			}
-			area[x][y] = A;
-		}
-	}
+	
 
 	cout << "Initialization done! \n";
 }
