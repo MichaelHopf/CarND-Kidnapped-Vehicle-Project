@@ -12,6 +12,7 @@
 #include <fstream>
 #include <math.h>
 #include <vector>
+#include <array>
 #include "map.h"
 
 // for portability of M_PI (Vis Studio, MinGW, etc.)

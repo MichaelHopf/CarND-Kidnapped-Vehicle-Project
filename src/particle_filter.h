@@ -11,6 +11,15 @@
 
 #include "helper_functions.h"
 
+struct area_dist {
+	int x;
+	int y;
+	int no;
+	std::vector<int> id;
+	std::vector<double> distance;
+};
+
+
 struct Particle {
 
 	int id;
@@ -29,19 +38,28 @@ class ParticleFilter {
 	
 	// Number of particles to draw
 	int num_particles; 
+
+	// total weight, max_weight
+	double total_weight, max_weight;
 	
-	
+	std::default_random_engine gen;
 	
 	// Flag, if filter is initialized
 	bool is_initialized;
 	
 	// Vector of weights of all particles
 	std::vector<double> weights;
+
+	// gauss_norms
+	double gauss_norm, gauss_norm_1, gauss_norm_2;
 	
 public:
 	
 	// Set of current particles
 	std::vector<Particle> particles;
+
+	// Set area structure
+	std::array<std::array<area_dist,150>,350> area;
 
 	// Constructor
 	// @param num_particles Number of particles
@@ -59,7 +77,7 @@ public:
 	 * @param std[] Array of dimension 3 [standard deviation of x [m], standard deviation of y [m]
 	 *   standard deviation of yaw [rad]]
 	 */
-	void init(double x, double y, double theta, double std[]);
+	void init(double x, double y, double theta, double std[], const Map &map_landmarks, double std_landmark[]);
 
 	/**
 	 * prediction Predicts the state for the next time step
